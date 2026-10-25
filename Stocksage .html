@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StockSage AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef2f1;--sf:#fff;--tx:#17231f;--mu:#5d6e68;--bd:#d3dcd9;--pine:#1f5a47;--chili:#c8372d;--amb:#b87a0c;--chip:#e4ece9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101a17;--sf:#18251f;--tx:#e6efeb;--mu:#93a8a0;--bd:#2c3d36;--pine:#5fc4a0;--chili:#ff7a6e;--amb:#f0b64a;--chip:#223229;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#101a17;--sf:#18251f;--tx:#e6efeb;--mu:#93a8a0;--bd:#2c3d36;--pine:#5fc4a0;--chili:#ff7a6e;--amb:#f0b64a;--chip:#223229;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Bricolage Grotesque",system-ui,-apple-system,Segoe UI,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:end;justify-content:space-between;margin-bottom:18px}
+h1{font-size:34px;font-weight:800;margin:0;letter-spacing:-.02em}
+h1 span{color:var(--pine)}
+.sub{color:var(--mu);margin:2px 0 0}
+h2{font-size:18px;margin:0 0 10px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.st{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:12px}
+.st b{display:block;font-size:28px;font-weight:800;line-height:1.1}
+.st small{color:var(--mu)}
+.st.bad b{color:var(--chili)}.st.warn b{color:var(--amb)}.st.ok b{color:var(--pine)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:16px;min-width:0}
+.card.full{grid-column:1/-1}
+form{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px}
+form .r2{grid-column:span 1}
+label{display:flex;flex-direction:column;font-size:12px;color:var(--mu);gap:2px}
+input,select{font:inherit;padding:8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);width:100%}
+button{font:inherit;font-weight:600;cursor:pointer;border:0;border-radius:6px;padding:9px 14px;background:var(--pine);color:#fff}
+:root[data-theme="dark"] button.p,@media (prefers-color-scheme:dark){}
+button.g{background:var(--chip);color:var(--tx)}
+button.x{background:none;color:var(--mu);padding:2px 8px;font-size:18px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--amb);outline-offset:2px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:520px}
+th{text-align:left;font-size:12px;color:var(--mu);font-weight:600;border-bottom:1px solid var(--bd);padding:6px 4px}
+td{padding:7px 4px;border-bottom:1px solid var(--bd)}
+.tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:600;background:var(--chip)}
+.tag.bad{background:var(--chili);color:#fff}.tag.warn{background:var(--amb);color:#fff}.tag.ok{color:var(--pine)}
+.low{color:var(--chili);font-weight:600}
+.dish{border-left:4px solid var(--pine);padding:6px 10px;margin-bottom:8px;background:var(--bg);border-radius:0 6px 6px 0}
+.dish.alm{border-color:var(--amb)}
+.dish b{display:block}.dish small{color:var(--mu)}
+ul.sl{list-style:none;margin:0;padding:0}
+ul.sl li{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--bd)}
+pre{white-space:pre-wrap;font:13px/1.55 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);padding:12px;border-radius:8px;margin:0 0 10px;max-height:380px;overflow:auto}
+.empty{color:var(--mu)}
+.bar{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}form{grid-template-columns:1fr 1fr}h1{font-size:28px}}
+@media print{body{background:#fff;color:#000}.noprint{display:none!important}.card{border:0}}
+</style></head><body>
+<div class="wrap">
+<header>
+<div><h1>Stock<span>Sage</span> AI</h1><p class="sub">Smart Kitchen Waste Reducer — add your ingredients and StockSage does the rest.</p></div>
+<div class="bar noprint"><button class="g" id="demo">Load sample data</button><button class="g" id="clr">Clear all</button></div>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<div class="grid">
+<section class="card noprint">
+<h2>Add ingredient</h2>
+<form id="f">
+<label>Name<input id="n" required placeholder="e.g. tomato" list="dl"></label>
+<label>Quantity<input id="q" type="number" step="any" min="0" required placeholder="5"></label>
+<label>Unit<select id="u"><option>kg</option><option>g</option><option>L</option><option>pcs</option></select></label>
+<label>Expiry date<input id="e" type="date" required></label>
+<label>Low-stock limit<input id="m" type="number" step="any" min="0" value="2"></label>
+<label>Price (Rs per unit)<input id="pc" type="number" step="any" min="0" placeholder="120"></label>
+<label>Supplier<input id="sp" placeholder="Veg Market"></label>
+<label>&nbsp;<button type="submit">Add</button></label>
+</form>
+<datalist id="dl"></datalist>
+</section>
+
+<section class="card full noprint">
+<h2>Lazy mode: local open-weight AI (Ollama)</h2>
+<p class="sub" id="ai-st">Checking Ollama…</p>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:8px 0">
+<label>Text model<input id="mt" value="llama3.2"></label>
+<label>Vision model (fridge photo)<input id="mv" value="llava"></label>
+<label>Fridge / shelf photo<input id="ph" type="file" accept="image/*"></label></div>
+<label>Or paste a messy note<textarea id="nt" rows="3" style="font:inherit;padding:8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx)" placeholder="got 5kg tomatoes today, 2kg chicken expires tomorrow, milk lasts 3 days..."></textarea></label>
+<div class="bar" style="margin-top:8px"><button id="ai1">Auto-fill stock</button><button class="g" id="ai2">AI morning brief + specials</button><span id="ai-m" class="sub"></span></div>
+<pre id="ai-o" style="margin-top:10px;display:none"></pre>
+</section>
+
+<section class="card">
+<h2>Expiring within 3 days</h2>
+<div id="exp"></div>
+</section>
+
+<section class="card full">
+<h2>Current stock</h2>
+<div class="tw" id="stock"></div>
+</section>
+
+<section class="card full noprint"><h2>Your menu dishes</h2>
+<form id="rf" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><label>Dish name<input id="rn" required placeholder="Special Karahi"></label><label>Ingredients (comma-separated)<input id="ri" required placeholder="chicken, tomato, onion"></label><label>&nbsp;<button type="submit">Add dish</button></label></form>
+<div id="rl" style="margin-top:10px"></div></section>
+
+<section class="card">
+<h2>Dish suggestions</h2>
+<p class="sub" style="margin-bottom:8px">Dishes that use expiring items are shown first.</p>
+<div id="dishes"></div>
+</section>
+
+<section class="card">
+<h2>Shopping list (low stock)</h2>
+<div id="shop"></div>
+</section>
+
+<section class="card full">
+<h2>Daily inventory report</h2>
+<pre id="rep"></pre>
+<div class="bar noprint"><button id="cp">Copy report</button><button class="g" id="pr">Print / PDF</button><span id="msg" class="sub"></span></div>
+</section>
+</div>
+</div>
+
+<script>
+const KEY="stocksage_v1";
+let items=[];
+try{items=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){items=[]}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}};
+const $=id=>document.getElementById(id);
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const iso=d=>{const z=new Date(d);return z.getFullYear()+"-"+String(z.getMonth()+1).padStart(2,"0")+"-"+String(z.getDate()).padStart(2,"0")};
+const daysLeft=s=>Math.round((new Date(s+"T00:00:00")-today())/864e5);
+const norm=s=>s.trim().toLowerCase();
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const RECIPES=[
+["Chicken Karahi",["chicken","tomato","onion","ginger","garlic","oil"]],
+["Dal Tadka",["lentils","onion","tomato","garlic","oil"]],
+["Aloo Gobi",["potato","cauliflower","onion","tomato","oil"]],
+["Palak Paneer",["spinach","paneer","onion","garlic","oil"]],
+["Vegetable Pulao",["rice","carrot","peas","onion","oil"]],
+["Chicken Biryani",["chicken","rice","onion","yogurt","tomato","oil"]],
+["Paneer Tikka Masala",["paneer","tomato","onion","cream","oil"]],
+["Mixed Veg Curry",["potato","carrot","peas","onion","tomato"]],
+["Egg Fried Rice",["egg","rice","carrot","onion","oil"]],
+["Tomato Soup",["tomato","onion","garlic","cream"]],
+["Chicken Handi",["chicken","yogurt","cream","onion","garlic"]],
+["Raita",["yogurt","cucumber","onion"]],
+["Egg Omelette",["egg","onion","tomato","oil"]],
+["Fresh Salad",["cucumber","tomato","onion","carrot"]],
+["Aloo Matar",["potato","peas","tomato","onion","oil"]]
+];
+const NAMES=[...new Set(RECIPES.flatMap(r=>r[1]))].sort();
+$("dl").innerHTML=NAMES.map(n=>`<option value="${n}">`).join("");
+
+let custom=[];try{custom=JSON.parse(localStorage.getItem(KEY+"_r")||"[]")}catch(e){}
+const saveR=()=>{try{localStorage.setItem(KEY+"_r",JSON.stringify(custom))}catch(e){}};
+const allRec=()=>[...custom.map(r=>[r.name,r.ing]),...RECIPES];
+function renderRec(){$("rl").innerHTML=custom.length?custom.map((r,k)=>`<span class="tag" style="margin:0 6px 6px 0">${esc(r.name)}: ${esc(r.ing.join(", "))} <button class="x" data-r="${k}" aria-label="Remove ${esc(r.name)}">×</button></span>`).join(""):'<p class="empty">No custom dishes yet. Add a dish from your menu.</p>'}
+const wasteOf=i=>Math.round(i.qty*(i.price||0));
+const wasteTotal=()=>items.filter(i=>status(i)==="expired").reduce((a,i)=>a+wasteOf(i),0);
+const bySup=l=>l.reduce((m,x)=>((m[x.sup]=m[x.sup]||[]).push(x),m),{});
+const status=i=>{const d=daysLeft(i.exp);return d<0?"expired":d<=3?"soon":"fresh"};
+const unit=i=>i.qty+" "+i.unit;
+const usable=()=>items.filter(i=>status(i)!=="expired"&&i.qty>0);
+
+function dishes(){
+  const have=new Map();usable().forEach(i=>have.set(norm(i.name),i));
+  return allRec().map(([name,ing])=>{
+    const miss=ing.filter(x=>!have.has(x));
+    const used=ing.filter(x=>have.has(x));
+    const soon=used.filter(x=>status(have.get(x))==="soon");
+    return{name,miss,soon,pct:used.length/ing.length,can:miss.length===0}
+  }).filter(d=>d.soon.length||d.can).filter(d=>d.miss.length<=1)
+    .sort((a,b)=>b.soon.length-a.soon.length||a.miss.length-b.miss.length);
+}
+function shopping(){
+  return items.filter(i=>status(i)==="expired"||i.qty<=i.min).map(i=>{
+    const target=Math.max(i.min*2,1);
+    const cur=status(i)==="expired"?0:i.qty;
+    const buy=Math.max(+(target-cur).toFixed(2),1);return{name:i.name,buy,unit:i.unit,why:status(i)==="expired"?"expired":"low stock",sup:i.sup||"General",cost:Math.round(buy*(i.price||0))}
+  });
+}
+function report(){
+  const L=[],d=new Date().toDateString();
+  const ex=items.filter(i=>status(i)==="expired"),so=items.filter(i=>status(i)==="soon").sort((a,b)=>daysLeft(a.exp)-daysLeft(b.exp));
+  L.push("STOCKSAGE DAILY INVENTORY REPORT","Date: "+d,"-".repeat(38));
+  L.push(`Total items: ${items.length} | Expiring soon: ${so.length} | Expired: ${ex.length}`,`WASTE COST TODAY: Rs ${wasteTotal()}`,"");
+  L.push("EXPIRING SOON (use first):");
+  L.push(...(so.length?so.map(i=>` - ${i.name} (${unit(i)}) — ${daysLeft(i.exp)===0?"today":daysLeft(i.exp)+" days"}`):[" - none"]));
+  L.push("","EXPIRED (waste, remove):");
+  L.push(...(ex.length?ex.map(i=>` - ${i.name} (${unit(i)}) — ${-daysLeft(i.exp)} days ago${i.price?" — loss Rs "+wasteOf(i):""}`):[" - none"]));
+  const ds=dishes();
+  L.push("","SUGGESTED DISHES:");
+  L.push(...(ds.length?ds.slice(0,6).map(x=>` - ${x.name}${x.miss.length?" (missing: "+x.miss[0]+")":""}${x.soon.length?" [uses: "+x.soon.join(", ")+"]":""}`):[" - none"]));
+  const sh=shopping();
+  L.push("","SHOPPING LIST:");
+  L.push(...(sh.length?Object.entries(bySup(sh)).flatMap(([s,l])=>[` ${s}:`,...l.map(x=>`   - ${x.name}: ${x.buy} ${x.unit}${x.cost?" (~Rs "+x.cost+")":""}`)]):[" - nothing needed"]));if(sh.length)L.push(` Total estimate: Rs ${sh.reduce((a,x)=>a+x.cost,0)}`);
+  return L.join("\n");
+}
+function render(){
+  const ex=items.filter(i=>status(i)==="expired").length,so=items.filter(i=>status(i)==="soon").length,sh=shopping().length;
+  $("stats").innerHTML=`<div class="st"><b>Rs ${wasteTotal()}</b><small>Waste cost (expired)</small></div><div class="st warn"><b>${so}</b><small>Expiring soon</small></div><div class="st bad"><b>${ex}</b><small>Expired</small></div><div class="st ok"><b>${sh}</b><small>To buy</small></div>`;
+  const soon=items.filter(i=>status(i)!=="fresh").sort((a,b)=>daysLeft(a.exp)-daysLeft(b.exp));
+  $("exp").innerHTML=soon.length?soon.map(i=>{const d=daysLeft(i.exp);return `<div class="dish ${d<0?"":"alm"}" style="border-color:${d<0?"var(--chili)":"var(--amb)"}"><b>${esc(i.name)} — ${unit(i)}${i.price?" · Rs "+wasteOf(i):""}</b><small>${d<0?"Expired "+(-d)+" days ago":d===0?"Expires today":d+" days left"}</small></div>`}).join(""):'<p class="empty">Nothing is about to expire. 👍</p>';
+  const s=[...items].sort((a,b)=>a.exp.localeCompare(b.exp));
+  $("stock").innerHTML=s.length?`<table><tr><th>Item</th><th>Qty</th><th>Expiry</th><th>Status</th><th></th></tr>${s.map(i=>{const st=status(i),d=daysLeft(i.exp);return `<tr><td>${esc(i.name)}</td><td class="${i.qty<=i.min?"low":""}">${unit(i)}${i.qty<=i.min?" ⚠":""}</td><td>${i.exp}</td><td><span class="tag ${st==="expired"?"bad":st==="soon"?"warn":"ok"}">${st==="expired"?"Expired":st==="soon"?d+"d left":"Fresh"}</span></td><td><button class="x noprint" data-id="${i.id}" aria-label="Remove ${esc(i.name)}">×</button></td></tr>`}).join("")}</table>`:'<p class="empty">Stock is empty. Add an ingredient or load sample data.</p>';
+  const ds=dishes();
+  $("dishes").innerHTML=ds.length?ds.map(x=>`<div class="dish ${x.can?"":"alm"}"><b>${x.name}</b><small>${x.can?"Can cook now":"Only "+x.miss[0]+" missing"}${x.soon.length?" · uses expiring: "+x.soon.join(", "):""}</small></div>`).join(""):'<p class="empty">No dish matches yet. Add more ingredients.</p>';
+  const sl=shopping();
+  $("shop").innerHTML=sl.length?Object.entries(bySup(sl)).map(([s,l])=>`<h3 style="font-size:14px;margin:10px 0 4px">${esc(s)} · Rs ${l.reduce((a,x)=>a+x.cost,0)}</h3><ul class="sl">${l.map(x=>`<li><span>${esc(x.name)} <span class="tag ${x.why==="expired"?"bad":"warn"}">${x.why}</span></span><b>${x.buy} ${x.unit}${x.cost?" · Rs "+x.cost:""}</b></li>`).join("")}</ul>`).join("")+`<p class="sub">Total estimate: Rs ${sl.reduce((a,x)=>a+x.cost,0)}</p>`:'<p class="empty">All stock is fine.</p>';
+  $("rep").textContent=report();renderRec();
+}
+$("f").onsubmit=e=>{e.preventDefault();
+  items.push({id:Date.now()+Math.random(),name:norm($("n").value),qty:+$("q").value,unit:$("u").value,exp:$("e").value,min:+$("m").value||0,price:+$("pc").value||0,sup:$("sp").value.trim()||"General"});
+  save();$("f").reset();$("m").value=2;render()};
+$("stock").onclick=e=>{const id=e.target.dataset&&e.target.dataset.id;if(id){items=items.filter(i=>String(i.id)!==id);save();render()}};
+$("clr").onclick=()=>{if(confirm("Delete all stock?")){items=[];save();render()}};
+$("demo").onclick=()=>{const t=new Date(),p=n=>{const d=new Date(t);d.setDate(d.getDate()+n);return iso(d)};
+  const D=[["chicken",3,"kg",1,2],["tomato",1.5,"kg",2,3],["onion",8,"kg",20,3],["spinach",1,"kg",1,1],["paneer",1,"kg",2,2],["yogurt",2,"kg",-1,1],["rice",15,"kg",90,5],["potato",6,"kg",12,3],["carrot",2,"kg",4,2],["peas",0.5,"kg",5,1],["egg",10,"pcs",3,12],["cream",1,"L",1,1],["garlic",0.4,"kg",15,0.3],["oil",5,"L",60,2]];
+  const PR={chicken:[650,"Meat Mart"],tomato:[120,"Veg Market"],onion:[90,"Veg Market"],spinach:[80,"Veg Market"],paneer:[1400,"Dairy Co"],yogurt:[220,"Dairy Co"],rice:[380,"Grocer"],potato:[80,"Veg Market"],carrot:[100,"Veg Market"],peas:[200,"Veg Market"],egg:[35,"Dairy Co"],cream:[450,"Dairy Co"],garlic:[600,"Veg Market"],oil:[520,"Grocer"]};
+  items=D.map(([name,qty,unit,d,min],i)=>({id:Date.now()+i,name,qty,unit,exp:p(d),min,price:PR[name][0],sup:PR[name][1]}));save();render()};
+$("cp").onclick=async()=>{try{await navigator.clipboard.writeText(report());$("msg").textContent="Copied ✓"}catch(e){const r=document.createRange();r.selectNode($("rep"));getSelection().removeAllRanges();getSelection().addRange(r);$("msg").textContent="Text selected, now copy it"}};
+$("pr").onclick=()=>window.print();
+$("rf").onsubmit=e=>{e.preventDefault();const ing=$("ri").value.split(",").map(norm).filter(Boolean);if(!ing.length)return;custom.unshift({name:$("rn").value.trim(),ing});saveR();$("rf").reset();render()};
+$("rl").onclick=e=>{const k=e.target.dataset&&e.target.dataset.r;if(k!==undefined){custom.splice(+k,1);saveR();render()}};
+/* ---- Local open-weight AI via Ollama (no cloud, no API key) ---- */
+const OL="http://localhost:11434";
+async function chat(model,prompt,img){
+  model=String(model).trim().replace(/[,\s]+$/,"");const m={role:"user",content:prompt};if(img)m.images=[img];
+  const r=await fetch(OL+"/api/chat",{method:"POST",body:JSON.stringify({model,messages:[m],stream:false,options:{temperature:.2}})});
+  if(!r.ok)throw new Error(r.status==404?"model '"+model+"' is not installed. Run: ollama pull "+model:"HTTP "+r.status);
+  return (await r.json()).message.content;
+}
+const b64=f=>new Promise(r=>{const x=new FileReader();x.onload=()=>r(x.result.split(",")[1]);x.readAsDataURL(f)});
+async function brief(){
+  $("ai-m").textContent="Generating brief…";
+  try{
+    const out=await chat($("mt").value,"You are a restaurant kitchen manager. From this inventory report write (1) a 3-line morning brief in simple English and (2) two creative special dishes that use the expiring items. Be short.\n\n"+report());
+    $("ai-o").style.display="block";$("ai-o").textContent=out;$("ai-m").textContent="Ready ✓";
+  }catch(e){$("ai-m").textContent="Fail: "+e.message}
+}
+$("ai2").onclick=brief;
+$("ai1").onclick=async()=>{
+  const f=$("ph").files[0],t=$("nt").value.trim();
+  if(!f&&!t){$("ai-m").textContent="Add a photo or a note";return}
+  $("ai-m").textContent="AI is reading…";
+  const P=`Today is ${iso(today())}. Extract kitchen ingredients${f?" visible in the photo":""}${t?" from this note: "+t:""}. Return ONLY a JSON array: [{"name":"english lowercase singular","qty":number,"unit":"kg|g|L|pcs","days_to_expiry":number}]. If expiry is unknown, guess the typical shelf life in days.`;
+  try{
+    const out=await chat(f?$("mv").value:$("mt").value,P,f?await b64(f):null);
+    const arr=JSON.parse(out.match(/\[[\s\S]*\]/)[0]);
+    arr.forEach(a=>{const d=new Date();d.setDate(d.getDate()+(+a.days_to_expiry||3));
+      items.push({id:Date.now()+Math.random(),name:norm(String(a.name)),qty:+a.qty||1,unit:["kg","g","L","pcs"].includes(a.unit)?a.unit:"pcs",exp:iso(d),min:1,price:0,sup:"General"})});
+    save();render();$("ai-m").textContent=arr.length+" items added ✓ (fill in price and supplier later)";
+  }catch(e){$("ai-m").textContent="Fail: "+e.message+" — check the model or its JSON output"}
+};
+fetch(OL+"/api/tags").then(r=>r.json()).then(j=>{
+  $("ai-st").textContent="✓ Ollama connected, models: "+j.models.map(x=>x.name).join(", ");
+  if(items.length)brief(); /* lazy: morning brief on open */
+}).catch(()=>{$("ai-st").textContent="Ollama not found. Run OLLAMA_ORIGINS=* ollama serve in a terminal. The rest of the app works without AI."});
+render();
+</script></body></html>
